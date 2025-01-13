@@ -122,12 +122,12 @@ void setup() {
 
     vorherigerAusgang = aktuellerAusgang;
 }
-
 void loop() {
     lcd_home();
 
     // Tastenabfrage zur Steuerung von Frequenz und Verstärkung
     char tastenDruck = get_button();
+
     switch (tastenDruck) {
         case button_up:
             if (tastenSperre == 0) {
@@ -157,16 +157,20 @@ void loop() {
                 vorherigerMenueStatus = 0;
             }
             break;
-        case button_ok:
-            if (tastenSperre == 0) {
-                tastenSperre = 1;
-                vorherigerMenueStatus = 2;
-            }
-            break;
         default:
             tastenSperre = 0;
             break;
     }
+
+    // Aktualisierte Filterparameter anwenden
+    aktualisierteFrequenz = filterFrequenz;
+    aktualisierteVerstaerkung = filterVerstaerkung;
+
+    // Berechnen der neuen Tiefpass-Koeffizienten
+    a0 = (1 / aktualisierteFrequenz) / (0.001 + 1 / aktualisierteFrequenz);
+    b1 = (0.001) / (0.001 + 1 / aktualisierteFrequenz);
+
+    vorherigerAusgang = aktuellerAusgang;
 
     // LCD-Anzeige aktualisieren, wenn Menü geändert wurde
     if (menueStatus != vorherigerMenueStatus) {
@@ -175,19 +179,6 @@ void loop() {
             lcd_puts(anzeigePuffer);
             sprintf(anzeigePuffer, "\nVerst.:%04d", int(filterVerstaerkung));
             lcd_puts(anzeigePuffer);
-            vorherigerMenueStatus = 1;
-        }
-
-        // Aktualisierte Filterparameter anwenden
-        if (vorherigerMenueStatus == 2) {
-            aktualisierteFrequenz = filterFrequenz;
-            aktualisierteVerstaerkung = filterVerstaerkung;
-
-            // Berechnen der neuen Tiefpass-Koeffizienten
-            a0 = (1 / aktualisierteFrequenz) / (0.001 + 1 / aktualisierteFrequenz);
-            b1 = (0.001) / (0.001 + 1 / aktualisierteFrequenz);
-
-            vorherigerAusgang = aktuellerAusgang;
             vorherigerMenueStatus = 1;
         }
     }
