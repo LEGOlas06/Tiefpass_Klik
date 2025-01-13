@@ -69,7 +69,7 @@ ISR(TIMER0_COMPA_vect) {
 
     // Übertragung des Ausgangswertes zum DAC
     PORTA &= ~(1 << CS_AUSGANG_PIN);
-    SPDR = (0b00010000) | ((ausgangsSignal >> 8) & 0x0F);
+    SPDR = (0b00110000) | ((ausgangsSignal >> 8) & 0x0F);
     while (!(SPSR & (1 << SPIF)));
     SPDR = ausgangsSignal & 0xFF;
     while (!(SPSR & (1 << SPIF)));
