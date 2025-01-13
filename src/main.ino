@@ -122,6 +122,7 @@ void setup() {
 
     vorherigerAusgang = aktuellerAusgang;
 }
+
 void loop() {
     lcd_home();
 
@@ -160,6 +161,11 @@ void loop() {
         default:
             tastenSperre = 0;
             break;
+    }
+
+    // Sicherstellen, dass die Frequenz nicht negativ ist
+    if (filterFrequenz < 10) {
+        filterFrequenz = 10;
     }
 
     // Aktualisierte Filterparameter anwenden
