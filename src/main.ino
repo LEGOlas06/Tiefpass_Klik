@@ -72,18 +72,19 @@ ISR (TIMER0_COMPA_vect) {
     PORTA &= ~(1 << PA1);
     PORTA |= (1 << PA1);
 }
+
 void setup() {
+
     DDRB = 0x07;
     DDRA = 0x03;
 
-    // SPI-Konfiguration für Master-Modus mit höherer Taktfrequenz
-    SPCR = (1 << SPIE) | (1 << SPE) | (1 << MSTR) | (0 << SPR1) | (0 << SPR0); // Höhere Frequenz
-    SPSR = (1 << SPI2X); // Verdoppelt die SPI-Taktfrequenz
+    // SPI-Konfiguration für Master-Modus
+    SPCR = (1 << SPIE) | (1 << SPE) | (1 << MSTR) | (1 << SPR1);
+    SPSR = 0;
 
-    // Timer-Konfiguration für höhere Frequenz
     TCCR0A = 2 << WGM00;
-    TCCR0B = 1 << CS00; // Prescaler auf 1 setzen für höhere Frequenz
-    OCR0A = 124; // Angepasster Wert für höhere Frequenz
+    TCCR0B = 3 << CS00;
+    OCR0A = 249;
     TIMSK0 = 1 << OCIE0A;
 
     sei();
@@ -122,7 +123,7 @@ void loop() {
             } break;
         case button_right:
             if (buttonLock == 0) {
-                filterFrequency = filterFrequency + 10; buttonLock = 1; previousMenuStatus = 0;
+                filterFrequency=filterFrequency + 10; buttonLock = 1; previousMenuStatus = 0;
             } break;
         case button_ok:
             if (buttonLock == 0) {
@@ -135,7 +136,6 @@ void loop() {
     if (menuStatus != previousMenuStatus) {
         if (previousMenuStatus == 0) {
             sprintf(displayBuffer, "Frq: %04d s-1", int(filterFrequency));
-            lcd_clrscr();
             lcd_puts(displayBuffer);
             sprintf(displayBuffer, "\nGain: %03d", int(filterGain));
             lcd_puts(displayBuffer);
