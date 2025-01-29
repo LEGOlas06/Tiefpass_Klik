@@ -7,7 +7,6 @@
 #include "lib/lcdarduino.h"
 #include <util/delay.h>
 
-
 // ADC-Daten
 volatile int adcHighByte = 0;
 volatile int adcLowByte = 0;
@@ -22,17 +21,24 @@ volatile char buttonLock = 0;
 // Filter-Parameter
 volatile float previousOutput = 0;
 volatile float currentOutput = 0;
-volatile float filterFrequency = 100;
-volatile float filterGain = 1;
-volatile float updatedFrequency = 100;
-volatile float updatedGain = 1;
-volatile float a0 = 0;
-volatile float b1 = 0;
+volatile float filterFrequency = 10.0; // Grenzfrequenz in Hz
+volatile float filterGain = 1.0;       // Verstärkung
+volatile float updatedFrequency = 10.0;
+volatile float updatedGain = 1.0;
+volatile float a0 = 0.0;
+volatile float b1 = 0.0;
+const float samplingFrequency = 1000.0; // Samplingfrequenz in Hz
+
+// Funktion zur Berechnung der Tiefpass-Koeffizienten
+void calculateCoefficients(float fc) {
+    float alpha = 1.0 / (1.0 + (samplingFrequency / (2.0 * M_PI * fc)));
+    a0 = alpha;
+    b1 = 1.0 - alpha;
+}
 
 // SPI Interrupt Service Routine
 ISR(SPI_STC_vect) {
 }
-
 
 ISR (TIMER0_COMPA_vect) {
     // Start der SPI-Kommunikation mit dem ADC
@@ -53,7 +59,7 @@ ISR (TIMER0_COMPA_vect) {
     float currentInput = (adcHighByte << 8) | adcLowByte;
 
     // Filterberechnung für den Tiefpassfilter
-    currentOutput = (b1 * currentInput + a0 * previousOutput);
+    currentOutput = (a0 * currentInput + b1 * previousOutput);
 
     previousOutput = currentOutput;
 
@@ -82,9 +88,10 @@ void setup() {
     SPCR = (1 << SPIE) | (1 << SPE) | (1 << MSTR) | (1 << SPR1);
     SPSR = 0;
 
+    // Timer-Konfiguration für Sampling
     TCCR0A = 2 << WGM00;
     TCCR0B = 3 << CS00;
-    OCR0A = 249;
+    OCR0A = 249; // Für 1 kHz bei 16 MHz Takt
     TIMSK0 = 1 << OCIE0A;
 
     sei();
@@ -101,6 +108,8 @@ void setup() {
     lcd_puts(displayBuffer);
     sprintf(displayBuffer, "\nGain: %d", int(filterGain));
     lcd_puts(displayBuffer);
+
+    calculateCoefficients(filterFrequency); // Anfangsberechnung
 }
 
 void loop() {
@@ -119,11 +128,11 @@ void loop() {
             } break;
         case button_left:
             if (buttonLock == 0) {
-                filterFrequency = filterFrequency - 10; buttonLock = 1; previousMenuStatus = 0;
+                filterFrequency -= 10.0; buttonLock = 1; previousMenuStatus = 0;
             } break;
         case button_right:
             if (buttonLock == 0) {
-                filterFrequency=filterFrequency + 10; buttonLock = 1; previousMenuStatus = 0;
+                filterFrequency += 10.0; buttonLock = 1; previousMenuStatus = 0;
             } break;
         case button_ok:
             if (buttonLock == 0) {
@@ -147,9 +156,7 @@ void loop() {
             updatedFrequency = filterFrequency;
             updatedGain = filterGain;
 
-            // Berechnen der neuen Tiefpass-Koeffizienten
-            a0 = (1 / updatedFrequency) / (0.001 + 1 / updatedFrequency);
-            b1 = (0.001) / (0.001 + 1 / updatedFrequency);
+            calculateCoefficients(updatedFrequency);
 
             previousOutput = currentOutput;
             previousMenuStatus = 1;
